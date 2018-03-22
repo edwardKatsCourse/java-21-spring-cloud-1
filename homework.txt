@@ -1,0 +1,46 @@
+Configurable server environment!
+
+Create 4 servers:
+- gateway-service
+- account-service-backup
+- account-service-production
+- config-server
+
+Roles:
+GATEWAY - receives requests and sends them to ACCOUNT-SERVICE (which one herein under).
+ACCOUNT-SERVICE-BACKUP - receives the data from gateway and stores the data as json files
+in the file system.
+ACCOUNT-SERVICE-PRODUCTION - receives requests from GATEWAY when CONFIG-SERVER is up and stores
+the data to the database.
+CONFIG-SERVER - contains configurations for all servers.
+
+Flow:
+Create exact same Person classes with any set of fields in ACCOUNT-SERVICE-BACKUP and ACCOUNT-SERVICE-PRODUCTION.
+
+GATEWAY - is the entry point of the application. It receives the requests (from Postman) and redirects them
+to ACCOUNT-SERVICE-BACKUP by default using RestTemplate.
+URL of ACCOUNT-SERVICE-BACKUP should be configured in application.properties file of GATEWAY as "account.service.path".
+
+ACCOUNT-SERVICE-BACKUP stores the data to the file system. Each new request is a new file
+(use timestamp or increment filename by one for every new file).
+There is an option of using H2 for that purpose instead of file system, but it is necessary to configure datasource.url
+for it to save the data to file (instead of using in-memory saving). Search in Google how to do that. Almost the same
+as MySQL or any other SQL database.
+
+CONFIG-SERVER contains gateway.properties for GATEWAY. In gateway.properties in "account.service.path" should be
+specified a path to ACCOUNT-SERVICE-PRODUCTION.
+Also contains MySQL properties for ACCOUNT-SERVICE-PRODUCTION.
+Notice: ACCOUNT-SERVICE-PRODUCTION must not participate in the process, if CONFIG-SERVER is down!
+
+ACCOUNT-SERVICE-PRODUCTION receives the requests in the same way as ACCOUNT-SERVICE-BACKUP does, but stores the info
+to MySQL or MongoDB database (on your choice).
+Connection properties of the database should be specified in CONFIG-SERVER in  account-service-production.properties
+
+Expectations:
+If CONFIG-SERVER is down - GATEWAY should send the requests to ACCOUNT-SERVICE-BACKUP. When CONFIG-SERVER is up,
+GATEWAY should fetch ACCOUNT-SERVICE-PRODUCTION path ("account.service.path" will be overriden by CONFIG-SERVER)
+and send the requests to ACCOUNT-SERVICE-PRODUCTION instead.
+
+Spring Data Rest (Rest Repositories) is required for ACCOUNT-SERVICE-PRODUCTION and is recommended for ACCOUNT-SERVICE-BACKUP.
+
+Good luck!
